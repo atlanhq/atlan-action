@@ -18,7 +18,7 @@ Here's what it looks like 👇
 
 ## Configure the action
 
-1. Create [repository secrets](https://github.com/Azure/actions-workflow-samples/blob/master/assets/create-secrets-for-GitHub-workflows.md#creating-secrets) in your repository:
+1. Create [repository secrets](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions) in your repository:
 
    - `ATLAN_INSTANCE_URL` with the URL of your Atlan instance.
    - `ATLAN_API_TOKEN` with the value of the API token.
@@ -27,7 +27,7 @@ Here's what it looks like 👇
 
 2. Add the GitHub Action to your workflow:
 
-   1. Create a workflow file in your repository: `.github/workflows/atlan-dbt.yml`
+   1. Create a workflow file in your repository: `.github/workflows/atlan-impact-analysis.yml`
    2. Add the following code to the workflow file:
 
       ```yaml
@@ -55,11 +55,11 @@ Here's what it looks like 👇
                 ATLAN_CONFIG: .atlan/config.yaml
       ```
 
-## Test the action
+## Running the Action
 
-After you've completed the configuration above, create a pull request with a changed dbt model or data contract file to test the action. You should see the Atlan GitHub action running and then adding comments in your pull request:
+After you've completed the configuration above, create a pull request with a changed dbt model or data contract file to run the action. You should see the Atlan action running and then adding comments in your pull request:
 
-- The GitHub workflow will add and update a single comment for every file change.
+- The action will add and update a single comment for every file change.
 - The impacted assets in the comment will be displayed in a collapsible section and grouped by source and asset type.
 - The comment will include some metadata for your impacted assets — such as descriptions, owners, and linked glossary terms.
 - View the impacted assets in Atlan or open the source URL — for example, view an impacted Looker dashboard directly in Looker.
