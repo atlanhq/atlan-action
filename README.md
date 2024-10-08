@@ -1,6 +1,6 @@
 # Atlan Action
 
-![atlan<>dbt](https://user-images.githubusercontent.com/14099191/209542321-54d5557e-8abf-4d9a-9f6d-dcacb856f25f.png)
+![atlan-action](https://github.com/user-attachments/assets/df739f4b-15da-4681-a591-4a7101e87b1f)
 
 ## Overview
 
