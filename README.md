@@ -10,7 +10,7 @@ We've created a GitHub Action to help you out — putting Atlan's impact analysi
 
 Here's what it looks like 👇
 
-![GitHub Action comment screenshot](https://iili.io/HI7d0zB.png)
+![GitHub Action comment screenshot](https://github.com/user-attachments/assets/75db2cb9-f62b-4696-9918-e70b7360b022)
 
 ## Prerequisites
 
@@ -23,7 +23,7 @@ Here's what it looks like 👇
    - `ATLAN_INSTANCE_URL` with the URL of your Atlan instance.
    - `ATLAN_API_TOKEN` with the value of the API token.
 
-   ![Actions Secrets Screenshot](https://iili.io/HI7gfx2.png)
+   ![Actions Secrets Screenshot](https://github.com/user-attachments/assets/8eb94830-08f0-4ad5-9186-813c6a00e8e3)
 
 2. Add the GitHub Action to your workflow:
 
@@ -42,12 +42,17 @@ Here's what it looks like 👇
           name: Get Downstream Assets
           runs-on: ubuntu-latest
           steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
             - name: Run Action
-              uses: atlanhq/atlan-action@v2
+              uses: atlanhq/atlan-action@v1
               with:
                 GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
                 ATLAN_INSTANCE_URL: ${{secrets.ATLAN_INSTANCE_URL}}
                 ATLAN_API_TOKEN: ${{secrets.ATLAN_API_TOKEN}}
+                # Add ATLAN_CONFIG to run impact analysis on contracts
+                ATLAN_CONFIG: .atlan/config.yaml
       ```
 
 ## Test the action
@@ -84,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run Action
-        uses: atlanhq/atlan-action@v2
+        uses: atlanhq/atlan-action@v1
         with:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
           ATLAN_INSTANCE_URL: ${{secrets.ATLAN_INSTANCE_URL}}
@@ -105,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run Action
-        uses: atlanhq/atlan-action@v2
+        uses: atlanhq/atlan-action@v1
         with:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
           ATLAN_INSTANCE_URL: ${{secrets.ATLAN_INSTANCE_URL}}
