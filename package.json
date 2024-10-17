@@ -21,8 +21,8 @@
     "start": "npm run build && act pull_request --container-architecture linux/amd64 --secret-file .env -e event.json --insecure-secrets",
     "sync": "git pull && git push"
   },
-  "author": "Jaagrav Seal <jaagrav.seal@atlan.com> (https://atlan.com/)",
-  "license": "MIT",
+  "author": "Atlan (https://atlan.com/)",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/atlanhq/atlan-action/issues"
   },
@@ -34,7 +34,7 @@
     "@gitbeaker/core": "^39.19.0",
     "@gitbeaker/requester-utils": "^39.19.0",
     "@gitbeaker/rest": "^39.19.0",
-    "@vercel/ncc": "^0.34.0",
+    "@vercel/ncc": "^0.38.2",
     "dotenv": "^16.0.3",
     "js-yaml": "^4.1.0",
     "json-stringify-safe": "^5.0.1",

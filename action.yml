@@ -18,12 +18,12 @@ inputs:
   IGNORE_MODEL_ALIAS_MATCHING:
     description: "Ignore model alias matching"
     required: false
-    default: false
+    default: "false"
   ATLAN_CONFIG:
     description: "Atlan CLI config file location"
     required: false
 runs:
-  using: "node16"
+  using: "node20"
   main: "dist/index.js"
 
 branding:
