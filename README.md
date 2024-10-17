@@ -15,7 +15,9 @@ Here's what it looks like 👇
 ## Prerequisites
 
 - **Atlan API token** → before you can run the action, you need an [Atlan API token](https://ask.atlan.com/hc/en-us/articles/8312649180049).
-
+- **Default Write Permission for GITHUB_TOKEN** -> Grant `read` and `write` permissions to the `GITHUB_TOKEN` in your repository to allow the `atlan-action` to seamlessly add or update comments on pull requests. For more details, refer to the [GitHub documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#configuring-the-default-github_token-permissions).
+  ![GITHUB_TOKEN](https://github.com/user-attachments/assets/4a20e27f-fea4-455c-9840-fa96b152b42b)
+  
 ## Configure the action
 
 1. Create [repository secrets](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions) in your repository:
