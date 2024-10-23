@@ -29790,7 +29790,7 @@ var jsYaml = {
 
 var headSHA;
 const integrationName = "GITHUB_CONTRACT_IMPACT_ANALYSIS";
-const actionName = "contract_ci_action"
+const actionName = "dbt_ci_action"
 const utmSource = "dbt_github_action"
 
 class ContractIntegration extends IntegrationInterface {
@@ -30224,6 +30224,8 @@ class ContractIntegration extends IntegrationInterface {
           ...properties,
           github_action_id: `https://github.com/${context?.payload?.repository?.full_name}/actions/runs/${context?.runId}`,
           domain,
+          base_asset_type: "atlanContract",
+          action_repo_name: "atlan-action"
         },
       });
 
@@ -30629,11 +30631,13 @@ ${viewAssetButton}`;
 }
 
 ;// CONCATENATED MODULE: ./adapters/integrations/github-integration.js
+
+
+
+
+
+
 // githubIntegration.js
-
-
-
-
 
 
 
@@ -31180,6 +31184,8 @@ class GitHubIntegration extends IntegrationInterface {
           ...properties,
           github_action_id: `https://github.com/${context?.payload?.repository?.full_name}/actions/runs/${context?.runId}`,
           domain,
+          base_asset_type: "dbtModel",
+          action_repo_name: "atlan-action"
         },
       });
 
@@ -31647,6 +31653,111 @@ ${viewAssetButton}`;
   }
 }
 
+;// CONCATENATED MODULE: ./adapters/templates/gitlab-integration.js
+
+
+function gitlab_integration_getErrorResponseStatus401 (ATLAN_INSTANCE_URL, CI_PROJECT_NAME, CI_PROJECT_NAMESPACE) {
+    return `We couldn't connect to your Atlan Instance, please make sure to set the valid Atlan Bearer Token as \`ATLAN_API_TOKEN\` as this repository's CI/CD variable. 
+
+Atlan Instance URL: ${ATLAN_INSTANCE_URL}
+    
+Set your CI/CD variables [here](https://gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/-/settings/ci_cd). For more information on how to setup the Atlan Action, please read the [setup documentation here](https://ask.atlan.com/hc/en-us/articles/8284983222415).`
+}
+
+function gitlab_integration_getErrorResponseStatusUndefined(ATLAN_INSTANCE_URL, CI_PROJECT_NAME, CI_PROJECT_NAMESPACE) {
+    return `We couldn't connect to your Atlan Instance, please make sure to set the valid Atlan Instance URL as \`ATLAN_INSTANCE_URL\` as this repository's CI/CD variable. 
+
+Atlan Instance URL: ${ATLAN_INSTANCE_URL}
+    
+Make sure your Atlan Instance URL is set in the following format.
+\`https://tenant.atlan.com\`
+    
+Set your CI/CD variables [here](https://gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/-/settings/ci_cd). For more information on how to setup the Atlan Action, please read the [setup documentation here](https://ask.atlan.com/hc/en-us/articles/8284983222415).`
+}
+
+function gitlab_integration_getSetResourceOnAssetComment(tableMd, setResourceFailed) {
+    return `## 🎊 Congrats on the merge!
+  
+  This pull request has been added as a resource to the following assets:
+    
+  ${setResourceFailed ? '> ⚠️  Seems like we were unable to set the resources for some of the assets due to insufficient permissions. To ensure that the pull request is linked as a resource, you will need to assign the right persona with requisite permissions to the API token.' : ''}
+    
+  Name | Resource set successfully
+  --- | ---
+  ${tableMd}
+  `
+}
+
+function gitlab_integration_getAssetInfo(ATLAN_INSTANCE_URL, asset, materialisedAsset, environmentName, projectName) {
+  return `### ${get_image_url_getConnectorImage(
+      asset.attributes.connectorName
+    )} [${asset.displayText}](${ATLAN_INSTANCE_URL}/assets/${
+      asset.guid
+    }/overview?utm_source=dbt_gitlab_action) ${
+      asset.attributes?.certificateStatus
+        ? get_image_url_getCertificationImage(asset.attributes.certificateStatus)
+        : ""
+    }
+Materialised asset: ${get_image_url_getConnectorImage(
+      materialisedAsset.attributes.connectorName
+    )} [${materialisedAsset.attributes.name}](${ATLAN_INSTANCE_URL}/assets/${
+      materialisedAsset.guid
+    }/overview?utm_source=dbt_gitlab_action) ${
+      materialisedAsset.attributes?.certificateStatus
+        ? get_image_url_getCertificationImage(materialisedAsset.attributes.certificateStatus)
+        : ""
+    }${environmentName ? ` | Environment Name: \`${environmentName}\`` : ""}${
+      projectName ? ` | Project Name: \`${projectName}\`` : ""
+    }`
+}
+
+function gitlab_integration_getDownstreamTable(ATLAN_INSTANCE_URL, downstreamAssets, rows, materialisedAsset) {
+  return `<details><summary><b>${
+      downstreamAssets.entityCount
+    } downstream assets 👇</b></summary><br/>
+
+Name | Type | Description | Owners | Terms | Classifications | Source URL
+--- | --- | --- | --- | --- | --- | ---
+${rows
+  .map((row) =>
+    row.map((i) => i.replace(/\|/g, "•").replace(/\n/g, "")).join(" | ")
+  )
+  .join("\n")}
+
+${
+  downstreamAssets.hasMore
+    ? `[See more downstream assets at Atlan](${ATLAN_INSTANCE_URL}/assets/${materialisedAsset.guid}/lineage?utm_source=dbt_gitlab_action)`
+    : ""
+}
+
+</details>`
+}
+
+function gitlab_integration_getViewAssetButton(ATLAN_INSTANCE_URL, asset) {
+  return `${get_image_url_getImageURL(
+      "atlan-logo",
+      15,
+      15
+    )} [View asset in Atlan](${ATLAN_INSTANCE_URL}/assets/${
+      asset.guid
+    }/overview?utm_source=dbt_gitlab_action)`
+}
+
+function gitlab_integration_getMDCommentForModel(ATLAN_INSTANCE_URL, model) {
+  return `${get_image_url_getConnectorImage(model?.attributes?.connectorName)} [${
+      model?.displayText
+    }](${ATLAN_INSTANCE_URL}/assets/${model?.guid}/overview?utm_source=dbt_gitlab_action)`
+}
+
+function gitlab_integration_getMDCommentForMaterialisedView(ATLAN_INSTANCE_URL, materialisedView) {
+  return `${get_image_url_getConnectorImage(materialisedView?.attributes?.connectorName)} [${
+      materialisedView?.attributes?.name
+    }](${ATLAN_INSTANCE_URL}/assets/${materialisedView?.guid}/overview?utm_source=dbt_gitlab_action)`
+}
+
+function gitlab_integration_getTableMD(md, resp) {
+  return `${md} | ${resp ? '✅' : '❌'} \n`
+}
 // EXTERNAL MODULE: ./node_modules/qs/lib/index.js
 var lib = __nccwpck_require__(240);
 // EXTERNAL MODULE: ./node_modules/xcase/es5/index.js
@@ -39059,119 +39170,15 @@ var {
 
 
 
-;// CONCATENATED MODULE: ./adapters/templates/gitlab-integration.js
-
-
-function gitlab_integration_getErrorResponseStatus401 (ATLAN_INSTANCE_URL, CI_PROJECT_NAME, CI_PROJECT_NAMESPACE) {
-    return `We couldn't connect to your Atlan Instance, please make sure to set the valid Atlan Bearer Token as \`ATLAN_API_TOKEN\` as this repository's CI/CD variable. 
-
-Atlan Instance URL: ${ATLAN_INSTANCE_URL}
-    
-Set your CI/CD variables [here](https://gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/-/settings/ci_cd). For more information on how to setup the Atlan Action, please read the [setup documentation here](https://ask.atlan.com/hc/en-us/articles/8284983222415).`
-}
-
-function gitlab_integration_getErrorResponseStatusUndefined(ATLAN_INSTANCE_URL, CI_PROJECT_NAME, CI_PROJECT_NAMESPACE) {
-    return `We couldn't connect to your Atlan Instance, please make sure to set the valid Atlan Instance URL as \`ATLAN_INSTANCE_URL\` as this repository's CI/CD variable. 
-
-Atlan Instance URL: ${ATLAN_INSTANCE_URL}
-    
-Make sure your Atlan Instance URL is set in the following format.
-\`https://tenant.atlan.com\`
-    
-Set your CI/CD variables [here](https://gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/-/settings/ci_cd). For more information on how to setup the Atlan Action, please read the [setup documentation here](https://ask.atlan.com/hc/en-us/articles/8284983222415).`
-}
-
-function gitlab_integration_getSetResourceOnAssetComment(tableMd, setResourceFailed) {
-    return `## 🎊 Congrats on the merge!
-  
-  This pull request has been added as a resource to the following assets:
-    
-  ${setResourceFailed ? '> ⚠️  Seems like we were unable to set the resources for some of the assets due to insufficient permissions. To ensure that the pull request is linked as a resource, you will need to assign the right persona with requisite permissions to the API token.' : ''}
-    
-  Name | Resource set successfully
-  --- | ---
-  ${tableMd}
-  `
-}
-
-function gitlab_integration_getAssetInfo(ATLAN_INSTANCE_URL, asset, materialisedAsset, environmentName, projectName) {
-  return `### ${get_image_url_getConnectorImage(
-      asset.attributes.connectorName
-    )} [${asset.displayText}](${ATLAN_INSTANCE_URL}/assets/${
-      asset.guid
-    }/overview?utm_source=dbt_gitlab_action) ${
-      asset.attributes?.certificateStatus
-        ? get_image_url_getCertificationImage(asset.attributes.certificateStatus)
-        : ""
-    }
-Materialised asset: ${get_image_url_getConnectorImage(
-      materialisedAsset.attributes.connectorName
-    )} [${materialisedAsset.attributes.name}](${ATLAN_INSTANCE_URL}/assets/${
-      materialisedAsset.guid
-    }/overview?utm_source=dbt_gitlab_action) ${
-      materialisedAsset.attributes?.certificateStatus
-        ? get_image_url_getCertificationImage(materialisedAsset.attributes.certificateStatus)
-        : ""
-    }${environmentName ? ` | Environment Name: \`${environmentName}\`` : ""}${
-      projectName ? ` | Project Name: \`${projectName}\`` : ""
-    }`
-}
-
-function gitlab_integration_getDownstreamTable(ATLAN_INSTANCE_URL, downstreamAssets, rows, materialisedAsset) {
-  return `<details><summary><b>${
-      downstreamAssets.entityCount
-    } downstream assets 👇</b></summary><br/>
-
-Name | Type | Description | Owners | Terms | Classifications | Source URL
---- | --- | --- | --- | --- | --- | ---
-${rows
-  .map((row) =>
-    row.map((i) => i.replace(/\|/g, "•").replace(/\n/g, "")).join(" | ")
-  )
-  .join("\n")}
-
-${
-  downstreamAssets.hasMore
-    ? `[See more downstream assets at Atlan](${ATLAN_INSTANCE_URL}/assets/${materialisedAsset.guid}/lineage?utm_source=dbt_gitlab_action)`
-    : ""
-}
-
-</details>`
-}
-
-function gitlab_integration_getViewAssetButton(ATLAN_INSTANCE_URL, asset) {
-  return `${get_image_url_getImageURL(
-      "atlan-logo",
-      15,
-      15
-    )} [View asset in Atlan](${ATLAN_INSTANCE_URL}/assets/${
-      asset.guid
-    }/overview?utm_source=dbt_gitlab_action)`
-}
-
-function gitlab_integration_getMDCommentForModel(ATLAN_INSTANCE_URL, model) {
-  return `${get_image_url_getConnectorImage(model?.attributes?.connectorName)} [${
-      model?.displayText
-    }](${ATLAN_INSTANCE_URL}/assets/${model?.guid}/overview?utm_source=dbt_gitlab_action)`
-}
-
-function gitlab_integration_getMDCommentForMaterialisedView(ATLAN_INSTANCE_URL, materialisedView) {
-  return `${get_image_url_getConnectorImage(materialisedView?.attributes?.connectorName)} [${
-      materialisedView?.attributes?.name
-    }](${ATLAN_INSTANCE_URL}/assets/${materialisedView?.guid}/overview?utm_source=dbt_gitlab_action)`
-}
-
-function gitlab_integration_getTableMD(md, resp) {
-  return `${md} | ${resp ? '✅' : '❌'} \n`
-}
 ;// CONCATENATED MODULE: ./adapters/integrations/gitlab-integration.js
+
+
+
+
+
+
+
 // gitlabIntegration.js
-
-
-
-
-
-
 
 
 
@@ -39780,6 +39787,8 @@ ${content}`;
           ...properties,
           gitlab_job_id: CI_JOB_URL,
           domain,
+          base_asset_type: "dbtModel",
+          action_repo_name: "atlan-action"
         },
       });
 

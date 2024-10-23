@@ -34,7 +34,7 @@ import yaml from 'js-yaml';
 
 var headSHA;
 const integrationName = "GITHUB_CONTRACT_IMPACT_ANALYSIS";
-const actionName = "contract_ci_action"
+const actionName = "dbt_ci_action"
 const utmSource = "dbt_github_action"
 
 export default class ContractIntegration extends IntegrationInterface {
@@ -468,6 +468,8 @@ export default class ContractIntegration extends IntegrationInterface {
           ...properties,
           github_action_id: `https://github.com/${context?.payload?.repository?.full_name}/actions/runs/${context?.runId}`,
           domain,
+          base_asset_type: "atlanContract",
+          action_repo_name: "atlan-action"
         },
       });
 
