@@ -78,7 +78,7 @@ export default class GitHubIntegration extends IntegrationInterface {
         total_assets = await this.setResourceOnAsset({ octokit, context });
       }
 
-      if (total_assets !== 0) {
+      if (total_assets !== 0 && total_assets != undefined) {
         await this.sendSegmentEventOfIntegration({
           action: "dbt_ci_action_run",
           properties: {

@@ -43,6 +43,7 @@ import { Gitlab } from "@gitbeaker/rest";
 import IntegrationInterface from "./contract/contract.js";
 import logger from "../logger/logger.js";
 import stringify from "json-stringify-safe";
+
 const integrationName = "gitlab";
 var CI_MERGE_REQUEST_IID;
 
@@ -117,7 +118,7 @@ export default class GitLabIntegration extends IntegrationInterface {
         });
       }
 
-      if (total_assets !== 0)
+      if (total_assets !== 0 && total_assets != undefined)
         await this.sendSegmentEventOfIntegration({
           action: "dbt_ci_action_run",
           properties: {
