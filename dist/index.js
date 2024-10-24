@@ -29832,7 +29832,7 @@ class ContractIntegration extends IntegrationInterface {
         total_assets = await this.printDownstreamAssets({ octokit, context });
       }
 
-      if (total_assets !== 0) {
+      if (total_assets !== 0 && total_assets != undefined) {
         await this.sendSegmentEventOfIntegration({
           action: `${actionName}_run`,
           properties: {
@@ -29868,7 +29868,6 @@ class ContractIntegration extends IntegrationInterface {
     );
 
     try {
-        const changedFiles = await this.getChangedFiles({ octokit, context });
         let comments = ``;
         let warningComments = ``;
         let totalChangedFiles = 0;
@@ -29899,6 +29898,8 @@ class ContractIntegration extends IntegrationInterface {
           );
           return;
         }
+
+        const changedFiles = await this.getChangedFiles({ octokit, context });
 
         for (const { fileName, filePath, status } of changedFiles) {
             // Skipping non yaml files
@@ -30685,7 +30686,7 @@ class GitHubIntegration extends IntegrationInterface {
         total_assets = await this.setResourceOnAsset({ octokit, context });
       }
 
-      if (total_assets !== 0) {
+      if (total_assets !== 0 && total_assets != undefined) {
         await this.sendSegmentEventOfIntegration({
           action: "dbt_ci_action_run",
           properties: {
@@ -39182,6 +39183,7 @@ var {
 
 
 
+
 const gitlab_integration_integrationName = "gitlab";
 var CI_MERGE_REQUEST_IID;
 
@@ -39256,7 +39258,7 @@ class GitLabIntegration extends IntegrationInterface {
         });
       }
 
-      if (total_assets !== 0)
+      if (total_assets !== 0 && total_assets != undefined)
         await this.sendSegmentEventOfIntegration({
           action: "dbt_ci_action_run",
           properties: {

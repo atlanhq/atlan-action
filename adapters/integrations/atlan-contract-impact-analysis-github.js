@@ -76,7 +76,7 @@ export default class ContractIntegration extends IntegrationInterface {
         total_assets = await this.printDownstreamAssets({ octokit, context });
       }
 
-      if (total_assets !== 0) {
+      if (total_assets !== 0 && total_assets != undefined) {
         await this.sendSegmentEventOfIntegration({
           action: `${actionName}_run`,
           properties: {
@@ -112,7 +112,6 @@ export default class ContractIntegration extends IntegrationInterface {
     );
 
     try {
-        const changedFiles = await this.getChangedFiles({ octokit, context });
         let comments = ``;
         let warningComments = ``;
         let totalChangedFiles = 0;
@@ -143,6 +142,8 @@ export default class ContractIntegration extends IntegrationInterface {
           );
           return;
         }
+
+        const changedFiles = await this.getChangedFiles({ octokit, context });
 
         for (const { fileName, filePath, status } of changedFiles) {
             // Skipping non yaml files
