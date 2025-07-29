@@ -4,7 +4,7 @@
 
 ## Overview
 
-_Have you ever changed a dbt model or a [data contract](https://ask.atlan.com/hc/en-us/articles/9281528742799-How-to-create-data-contracts) only to later find it broke a downstream table or dashboard? 💔_
+_Have you ever changed a dbt model or a [data contract](https://docs.atlan.com/product/capabilities/governance/contracts/how-tos/create-data-contracts) only to later find it broke a downstream table or dashboard? 💔_
 
 We've created a GitHub Action to help you out — putting Atlan's impact analysis right into your pull request. So now, before merging the PR, you can see the potential downstream impact of your changes.
 
@@ -14,7 +14,7 @@ Here's what it looks like 👇
 
 ## Prerequisites
 
-- **Atlan API token** → before you can run the action, you need an [Atlan API token](https://ask.atlan.com/hc/en-us/articles/8312649180049).
+- **Atlan API token** → before you can run the action, you need an [Atlan API token](https://docs.atlan.com/get-started/references/api-authentication).
 - **Default Write Permission for GITHUB_TOKEN** -> Grant `read` and `write` permissions to the `GITHUB_TOKEN` in your repository to allow the `atlan-action` to seamlessly add or update comments on pull requests. For more details, refer to the [GitHub documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#configuring-the-default-github_token-permissions).
   ![GITHUB_TOKEN](https://github.com/user-attachments/assets/4a20e27f-fea4-455c-9840-fa96b152b42b)
   
@@ -72,7 +72,7 @@ After you've completed the configuration above, create a pull request with a cha
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
 | `GITHUB_TOKEN`                | Needed to write comments on PRs to print all the downstream assets. https://dev.to/github/the-githubtoken-in-github-actions-how-it-works-change-permissions-customizations-3cgp                                                                                                                                                 | true     |
 | `ATLAN_INSTANCE_URL`          | Needed for making API requests to the user's tenant.                                                                                                                                                                                                                                                                            | true     |
-| `ATLAN_API_TOKEN`             | Needed for authenticating API requests to the user's tenant. https://ask.atlan.com/hc/en-us/articles/8312649180049                                                                                                                                                                                                              | true     |
+| `ATLAN_API_TOKEN`             | Needed for authenticating API requests to the user's tenant. https://docs.atlan.com/get-started/references/api-authentication                                                                                                                                                                                                              | true     |
 | `DBT_ENVIRONMENT_BRANCH_MAP`  | Map Github branch with specific dbt environment, if you do this - Atlan Github action will pick lineage for that specific environment from Atlan.You can provide the mapping like `branch name`: `dbt environment name`. <br><br>main: DBT-DEMO-PROD<br>beta: Wide World Importers PE1<br>test-action: Wide World Importers PE1 | false    |
 | `IGNORE_MODEL_ALIAS_MATCHING` | By default the action checks if there's an alias defined for a model in the code and looks for the relevant asset in Atlan using that alias. You can turn off matching alias name using this variable.                                                                                                                          | false    | false   |
 | `ATLAN_CONFIG` | The Atlan CLI configuration file is typically located at `.atlan/config.yaml`. Setting the `ATLAN_CONFIG` environment variable will trigger impact analysis on Atlan Data Contracts, if included in a GitHub pull request.                                                                                                                          | false    |    |

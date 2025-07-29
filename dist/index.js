@@ -31662,7 +31662,7 @@ function gitlab_integration_getErrorResponseStatus401 (ATLAN_INSTANCE_URL, CI_PR
 
 Atlan Instance URL: ${ATLAN_INSTANCE_URL}
     
-Set your CI/CD variables [here](https://gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/-/settings/ci_cd). For more information on how to setup the Atlan Action, please read the [setup documentation here](https://ask.atlan.com/hc/en-us/articles/8284983222415).`
+Set your CI/CD variables [here](https://gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/-/settings/ci_cd). For more information on how to setup the Atlan Action, please read the [setup documentation here](https://docs.atlan.com/apps/connectors/etl-tools/dbt/how-tos/add-impact-analysis-in-gitlab).`
 }
 
 function gitlab_integration_getErrorResponseStatusUndefined(ATLAN_INSTANCE_URL, CI_PROJECT_NAME, CI_PROJECT_NAMESPACE) {
@@ -31673,7 +31673,7 @@ Atlan Instance URL: ${ATLAN_INSTANCE_URL}
 Make sure your Atlan Instance URL is set in the following format.
 \`https://tenant.atlan.com\`
     
-Set your CI/CD variables [here](https://gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/-/settings/ci_cd). For more information on how to setup the Atlan Action, please read the [setup documentation here](https://ask.atlan.com/hc/en-us/articles/8284983222415).`
+Set your CI/CD variables [here](https://gitlab.com/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/-/settings/ci_cd). For more information on how to setup the Atlan Action, please read the [setup documentation here](https://docs.atlan.com/apps/connectors/etl-tools/dbt/how-tos/add-impact-analysis-in-gitlab).`
 }
 
 function gitlab_integration_getSetResourceOnAssetComment(tableMd, setResourceFailed) {
