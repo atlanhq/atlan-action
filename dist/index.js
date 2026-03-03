@@ -25063,6 +25063,16 @@ function getNewModelAddedComment(fileName) {
   Its a new model and not present in Atlan yet, you'll see the downstream impact for it after its present in Atlan.`
 }
 
+function getModelDeletedComment(fileName) {
+  return `### ${get_image_url_getConnectorImage("dbt")} <b>${fileName}</b> 🗑️
+  This model is being deleted. Below is the downstream impact analysis for this model.`
+}
+
+function getModelRenamedComment(oldFileName, newFileName) {
+  return `### ${get_image_url_getConnectorImage("dbt")} <b>${oldFileName}</b> → <b>${newFileName}</b> ✏️
+  This model is being renamed. Below is the downstream impact analysis for this model.`
+}
+
 function getBaseComment(totalChangedFiles, comments) {
   return `### ${get_image_url_getImageURL("atlan-logo", 15, 15)} Atlan impact analysis
   Here is your downstream impact analysis for **${totalChangedFiles} ${
@@ -30726,20 +30736,74 @@ class GitHubIntegration extends IntegrationInterface {
       let comments = ``;
       let totalChangedFiles = 0;
 
-      for (const { fileName, filePath, status } of changedFiles) {
+      for (const { fileName, filePath, status, oldFileName, previousFilePath } of changedFiles) {
         logger_logger.withInfo(
-          `Processing file: ${fileName}`,
+          `Processing file: ${fileName} (status: ${status})`,
           github_integration_integrationName,
           github_integration_headSHA,
           "printDownstreamAssets"
         );
-        const aliasName = await this.getAssetName({
-          octokit,
-          context,
-          fileName,
-          filePath,
-        });
-        const assetName = IGNORE_MODEL_ALIAS_MATCHING ? fileName : aliasName;
+
+        if (totalChangedFiles !== 0) comments += "\n\n---\n\n";
+
+        if (status === "added") {
+          logger_logger.withInfo(
+            `New model added: ${fileName}`,
+            github_integration_integrationName,
+            github_integration_headSHA,
+            "printDownstreamAssets"
+          );
+          comments += getNewModelAddedComment(fileName);
+          totalChangedFiles++;
+          continue;
+        }
+
+        // Determine asset name based on file status
+        let assetName;
+        const baseSha = context.payload.pull_request.base.sha;
+
+        if (status === "removed") {
+          // Deleted file: read alias from base branch (file no longer exists at HEAD)
+          logger_logger.withInfo(
+            `Model deleted: ${fileName}, fetching alias from base branch`,
+            github_integration_integrationName,
+            github_integration_headSHA,
+            "printDownstreamAssets"
+          );
+          const aliasName = await this.getAssetName({
+            octokit,
+            context,
+            fileName,
+            filePath,
+            ref: baseSha,
+          });
+          assetName = IGNORE_MODEL_ALIAS_MATCHING ? fileName : aliasName;
+        } else if (status === "renamed" && oldFileName) {
+          // Renamed file: use old filename to look up existing asset in Atlan
+          logger_logger.withInfo(
+            `Model renamed: ${oldFileName} → ${fileName}, fetching alias from base branch`,
+            github_integration_integrationName,
+            github_integration_headSHA,
+            "printDownstreamAssets"
+          );
+          const aliasName = await this.getAssetName({
+            octokit,
+            context,
+            fileName: oldFileName,
+            filePath: previousFilePath,
+            ref: baseSha,
+          });
+          assetName = IGNORE_MODEL_ALIAS_MATCHING ? oldFileName : aliasName;
+        } else {
+          // Modified or other: existing behavior (read from HEAD)
+          const aliasName = await this.getAssetName({
+            octokit,
+            context,
+            fileName,
+            filePath,
+          });
+          assetName = IGNORE_MODEL_ALIAS_MATCHING ? fileName : aliasName;
+        }
 
         const environments = getEnvironments();
         let environment = null;
@@ -30762,20 +30826,6 @@ class GitHubIntegration extends IntegrationInterface {
           environment: environment,
           integration: "github",
         });
-
-        if (totalChangedFiles !== 0) comments += "\n\n---\n\n";
-
-        if (status === "added") {
-          logger_logger.withInfo(
-            `New model added: ${fileName}`,
-            github_integration_integrationName,
-            github_integration_headSHA,
-            "printDownstreamAssets"
-          );
-          comments += getNewModelAddedComment(fileName);
-          totalChangedFiles++;
-          continue;
-        }
 
         if (asset.error) {
           logger_logger.withError(
@@ -30838,6 +30888,13 @@ class GitHubIntegration extends IntegrationInterface {
           downstreamAssets,
           classifications,
         });
+
+        // Add preamble for deleted/renamed models
+        if (status === "removed") {
+          comments += getModelDeletedComment(fileName) + "\n\n";
+        } else if (status === "renamed" && oldFileName) {
+          comments += getModelRenamedComment(oldFileName, fileName) + "\n\n";
+        }
 
         comments += comment;
 
@@ -30917,21 +30974,48 @@ class GitHubIntegration extends IntegrationInterface {
         return totalChangedFiles;
       }
 
-      for (const { fileName, filePath } of changedFiles) {
+      for (const { fileName, filePath, status, oldFileName, previousFilePath } of changedFiles) {
+        // Skip deleted files — no point linking PR to a model being removed
+        if (status === "removed") {
+          logger_logger.withInfo(
+            `Skipping removed file: ${fileName}`,
+            github_integration_integrationName,
+            github_integration_headSHA,
+            "setResourceOnAsset"
+          );
+          continue;
+        }
+
         logger_logger.withInfo(
           `Processing file: ${fileName}`,
           github_integration_integrationName,
           github_integration_headSHA,
           "setResourceOnAsset"
         );
-        const aliasName = await this.getAssetName({
-          octokit,
-          context,
-          fileName,
-          filePath,
-        });
 
-        const assetName = IGNORE_MODEL_ALIAS_MATCHING ? fileName : aliasName;
+        // For renamed files, resolve asset name from old path using base ref
+        let aliasName;
+        let resolvedFileName = fileName;
+        if (status === "renamed" && oldFileName) {
+          resolvedFileName = oldFileName;
+          const baseSha = context.payload.pull_request.base.sha;
+          aliasName = await this.getAssetName({
+            octokit,
+            context,
+            fileName: oldFileName,
+            filePath: previousFilePath,
+            ref: baseSha,
+          });
+        } else {
+          aliasName = await this.getAssetName({
+            octokit,
+            context,
+            fileName,
+            filePath,
+          });
+        }
+
+        const assetName = IGNORE_MODEL_ALIAS_MATCHING ? resolvedFileName : aliasName;
 
         logger_logger.withInfo(
           `Resolved asset name: ${assetName}`,
@@ -31226,7 +31310,7 @@ class GitHubIntegration extends IntegrationInterface {
       );
 
       var changedFiles = res.data
-        .map(({ filename, status }) => {
+        .map(({ filename, status, previous_filename }) => {
           try {
             const [modelName] = filename
               .match(/.*models\/(.*)\.sql/)[1]
@@ -31235,13 +31319,56 @@ class GitHubIntegration extends IntegrationInterface {
               .split(".");
 
             if (modelName) {
-              return {
+              const result = {
                 fileName: modelName,
                 filePath: filename,
                 status,
               };
+
+              // For renamed files, extract the old model name
+              if (status === "renamed" && previous_filename) {
+                try {
+                  const [oldModelName] = previous_filename
+                    .match(/.*models\/(.*)\.sql/)[1]
+                    .split("/")
+                    .reverse()[0]
+                    .split(".");
+                  result.oldFileName = oldModelName;
+                  result.previousFilePath = previous_filename;
+                } catch (e) {
+                  // Old file was not a model file, treat as new addition
+                  logger_logger.withInfo(
+                    `Renamed file's old path does not match model pattern: ${previous_filename}`,
+                    github_integration_integrationName,
+                    github_integration_headSHA,
+                    "getChangedFiles"
+                  );
+                }
+              }
+
+              return result;
             }
           } catch (e) {
+            // If the new filename doesn't match models pattern, check old filename for renames
+            if (status === "renamed" && previous_filename) {
+              try {
+                const [oldModelName] = previous_filename
+                  .match(/.*models\/(.*)\.sql/)[1]
+                  .split("/")
+                  .reverse()[0]
+                  .split(".");
+                if (oldModelName) {
+                  // Model was renamed out of models/ dir — treat as removal
+                  return {
+                    fileName: oldModelName,
+                    filePath: previous_filename,
+                    status: "removed",
+                  };
+                }
+              } catch (e2) {
+                // Neither old nor new path matches model pattern
+              }
+            }
             logger_logger.withError(
               `Error processing file: ${filename} - ${e.message}`,
               github_integration_integrationName,
@@ -31278,7 +31405,7 @@ class GitHubIntegration extends IntegrationInterface {
     }
   }
 
-  async getAssetName({ octokit, context, fileName, filePath }) {
+  async getAssetName({ octokit, context, fileName, filePath, ref }) {
     try {
       logger_logger.withInfo(
         "Getting asset name...",
@@ -31293,6 +31420,7 @@ class GitHubIntegration extends IntegrationInterface {
         octokit,
         context,
         filePath,
+        ref,
       });
 
       if (fileContents) {
@@ -31325,7 +31453,7 @@ class GitHubIntegration extends IntegrationInterface {
     }
   }
 
-  async getFileContents({ octokit, context, filePath }) {
+  async getFileContents({ octokit, context, filePath, ref }) {
     try {
       logger_logger.withInfo(
         "Fetching file contents...",
@@ -31336,12 +31464,13 @@ class GitHubIntegration extends IntegrationInterface {
 
       const { repository, pull_request } = context.payload,
         owner = repository.owner.login,
-        repo = repository.name,
-        head_sha = pull_request.head.sha;
+        repo = repository.name;
+
+      const fileRef = ref || pull_request.head.sha;
 
       const res = await octokit
         .request(
-          `GET /repos/${owner}/${repo}/contents/${filePath}?ref=${head_sha}`,
+          `GET /repos/${owner}/${repo}/contents/${filePath}?ref=${fileRef}`,
           {
             owner,
             repo,
@@ -39298,20 +39427,73 @@ class GitLabIntegration extends IntegrationInterface {
       let comments = ``;
       let totalChangedFiles = 0;
 
-      for (const { fileName, filePath, headSHA, status } of changedFiles) {
+      for (const { fileName, filePath, headSHA, baseSHA, status, oldFileName, previousFilePath } of changedFiles) {
         logger_logger.withInfo(
-          `Processing file: ${fileName}`,
+          `Processing file: ${fileName} (status: ${status})`,
           gitlab_integration_integrationName,
           CI_COMMIT_SHA,
           "printDownstreamAssets"
         );
-        const aliasName = await this.getAssetName({
-          gitlab,
-          fileName,
-          filePath,
-          headSHA,
-        });
-        const assetName = IGNORE_MODEL_ALIAS_MATCHING ? fileName : aliasName;
+
+        if (totalChangedFiles !== 0) comments += "\n\n---\n\n";
+
+        if (status === "added") {
+          logger_logger.withInfo(
+            `New model added: ${fileName}`,
+            gitlab_integration_integrationName,
+            CI_COMMIT_SHA,
+            "printDownstreamAssets"
+          );
+          comments += getNewModelAddedComment(fileName);
+          totalChangedFiles++;
+          continue;
+        }
+
+        // Determine asset name based on file status
+        let assetName;
+
+        if (status === "removed") {
+          // Deleted file: read alias from base branch (file no longer exists at HEAD)
+          logger_logger.withInfo(
+            `Model deleted: ${fileName}, fetching alias from base branch`,
+            gitlab_integration_integrationName,
+            CI_COMMIT_SHA,
+            "printDownstreamAssets"
+          );
+          const aliasName = await this.getAssetName({
+            gitlab,
+            fileName,
+            filePath,
+            headSHA,
+            ref: baseSHA,
+          });
+          assetName = IGNORE_MODEL_ALIAS_MATCHING ? fileName : aliasName;
+        } else if (status === "renamed_or_moved" && oldFileName) {
+          // Renamed file: use old filename to look up existing asset in Atlan
+          logger_logger.withInfo(
+            `Model renamed: ${oldFileName} → ${fileName}, fetching alias from base branch`,
+            gitlab_integration_integrationName,
+            CI_COMMIT_SHA,
+            "printDownstreamAssets"
+          );
+          const aliasName = await this.getAssetName({
+            gitlab,
+            fileName: oldFileName,
+            filePath: previousFilePath,
+            headSHA,
+            ref: baseSHA,
+          });
+          assetName = IGNORE_MODEL_ALIAS_MATCHING ? oldFileName : aliasName;
+        } else {
+          // Modified or other: existing behavior (read from HEAD)
+          const aliasName = await this.getAssetName({
+            gitlab,
+            fileName,
+            filePath,
+            headSHA,
+          });
+          assetName = IGNORE_MODEL_ALIAS_MATCHING ? fileName : aliasName;
+        }
 
         const environments = getGitLabEnvironments();
         let environment = null;
@@ -39336,20 +39518,6 @@ class GitLabIntegration extends IntegrationInterface {
           environment: environment,
           integration: "gitlab",
         });
-
-        if (totalChangedFiles !== 0) comments += "\n\n---\n\n";
-
-        if (status === "added") {
-          logger_logger.withInfo(
-            `New model added: ${fileName}`,
-            gitlab_integration_integrationName,
-            CI_COMMIT_SHA,
-            "printDownstreamAssets"
-          );
-          comments += getNewModelAddedComment(fileName);
-          totalChangedFiles++;
-          continue;
-        }
 
         if (asset.error) {
           logger_logger.withError(
@@ -39412,6 +39580,13 @@ class GitLabIntegration extends IntegrationInterface {
           classifications,
           materialisedAsset,
         });
+
+        // Add preamble for deleted/renamed models
+        if (status === "removed") {
+          comments += getModelDeletedComment(fileName) + "\n\n";
+        } else if (status === "renamed_or_moved" && oldFileName) {
+          comments += getModelRenamedComment(oldFileName, fileName) + "\n\n";
+        }
 
         comments += comment;
 
@@ -39482,15 +39657,40 @@ class GitLabIntegration extends IntegrationInterface {
         return totalChangedFiles;
       }
 
-      for (const { fileName, filePath, headSHA } of changedFiles) {
-        const aliasName = await this.getAssetName({
-          gitlab,
-          fileName,
-          filePath,
-          headSHA,
-        });
+      for (const { fileName, filePath, headSHA, baseSHA, status, oldFileName, previousFilePath } of changedFiles) {
+        // Skip deleted files — no point linking MR to a model being removed
+        if (status === "removed") {
+          logger_logger.withInfo(
+            `Skipping removed file: ${fileName}`,
+            gitlab_integration_integrationName,
+            CI_COMMIT_SHA,
+            "setResourceOnAsset"
+          );
+          continue;
+        }
 
-        const assetName = IGNORE_MODEL_ALIAS_MATCHING ? fileName : aliasName;
+        // For renamed files, resolve asset name from old path using base ref
+        let aliasName;
+        let resolvedFileName = fileName;
+        if (status === "renamed_or_moved" && oldFileName) {
+          resolvedFileName = oldFileName;
+          aliasName = await this.getAssetName({
+            gitlab,
+            fileName: oldFileName,
+            filePath: previousFilePath,
+            headSHA,
+            ref: baseSHA,
+          });
+        } else {
+          aliasName = await this.getAssetName({
+            gitlab,
+            fileName,
+            filePath,
+            headSHA,
+          });
+        }
+
+        const assetName = IGNORE_MODEL_ALIAS_MATCHING ? resolvedFileName : aliasName;
 
         logger_logger.withInfo(
           `Resolved asset name: ${assetName}`,
@@ -39821,16 +40021,26 @@ ${content}`;
       );
 
       var changedFiles = changes
-        .map(({ new_path, old_path, new_file }) => {
+        .map(({ new_path, old_path, new_file, deleted_file }) => {
           try {
-            const [modelName] = new_path
+            // For deleted files, use old_path since new_path may not be meaningful
+            const pathToMatch = deleted_file ? old_path : new_path;
+            const [modelName] = pathToMatch
               .match(/.*models\/(.*)\.sql/)[1]
               .split("/")
               .reverse()[0]
               .split(".");
 
             if (modelName) {
-              if (new_file) {
+              if (deleted_file) {
+                return {
+                  fileName: modelName,
+                  filePath: old_path,
+                  headSHA: diff_refs.head_sha,
+                  baseSHA: diff_refs.base_sha,
+                  status: "removed",
+                };
+              } else if (new_file) {
                 return {
                   fileName: modelName,
                   filePath: new_path,
@@ -39838,13 +40048,32 @@ ${content}`;
                   status: "added",
                 };
               } else if (new_path !== old_path) {
-                // File is renamed or moved
-                return {
+                // File is renamed or moved — include old name info
+                const result = {
                   fileName: modelName,
                   filePath: new_path,
                   headSHA: diff_refs.head_sha,
+                  baseSHA: diff_refs.base_sha,
                   status: "renamed_or_moved",
                 };
+                try {
+                  const [oldModelName] = old_path
+                    .match(/.*models\/(.*)\.sql/)[1]
+                    .split("/")
+                    .reverse()[0]
+                    .split(".");
+                  result.oldFileName = oldModelName;
+                  result.previousFilePath = old_path;
+                } catch (e) {
+                  // Old file was not a model file
+                  logger_logger.withInfo(
+                    `Renamed file's old path does not match model pattern: ${old_path}`,
+                    gitlab_integration_integrationName,
+                    CI_COMMIT_SHA,
+                    "getChangedFiles"
+                  );
+                }
+                return result;
               } else {
                 // File is modified
                 return {
@@ -39856,6 +40085,28 @@ ${content}`;
               }
             }
           } catch (e) {
+            // If new path doesn't match, check old path for renames
+            if (new_path !== old_path && !new_file) {
+              try {
+                const [oldModelName] = old_path
+                  .match(/.*models\/(.*)\.sql/)[1]
+                  .split("/")
+                  .reverse()[0]
+                  .split(".");
+                if (oldModelName) {
+                  // Model was renamed out of models/ dir — treat as removal
+                  return {
+                    fileName: oldModelName,
+                    filePath: old_path,
+                    headSHA: diff_refs.head_sha,
+                    baseSHA: diff_refs.base_sha,
+                    status: "removed",
+                  };
+                }
+              } catch (e2) {
+                // Neither old nor new path matches model pattern
+              }
+            }
             logger_logger.withError(
               `Error processing file`,
               gitlab_integration_integrationName,
@@ -39892,7 +40143,7 @@ ${content}`;
     }
   }
 
-  async getAssetName({ gitlab, fileName, filePath, headSHA }) {
+  async getAssetName({ gitlab, fileName, filePath, headSHA, ref }) {
     try {
       logger_logger.withInfo(
         "Getting asset name...",
@@ -39906,17 +40157,17 @@ ${content}`;
       var fileContents = await this.getFileContents({
         gitlab,
         filePath,
-        headSHA,
+        ref: ref || headSHA,
       });
 
-      logger_logger.withInfo(
-        `Successfully fetched file contents. File size: ${fileContents.length} bytes`,
-        gitlab_integration_integrationName,
-        CI_COMMIT_SHA,
-        "getAssetName"
-      );      
-
       if (fileContents) {
+        logger_logger.withInfo(
+          `Successfully fetched file contents. File size: ${fileContents.length} bytes`,
+          gitlab_integration_integrationName,
+          CI_COMMIT_SHA,
+          "getAssetName"
+        );
+
         logger_logger.withInfo(
           "Starting regex matching",
           gitlab_integration_integrationName,
@@ -40005,7 +40256,7 @@ ${content}`;
     }
   }
 
-  async getFileContents({ gitlab, filePath, headSHA }) {
+  async getFileContents({ gitlab, filePath, ref }) {
     try {
       logger_logger.withInfo(
         "Fetching file contents...",
@@ -40014,10 +40265,11 @@ ${content}`;
         "getFileContents"
       );
 
+      const fileRef = ref || CI_COMMIT_SHA;
       const { content } = await gitlab.RepositoryFiles.show(
         CI_PROJECT_PATH,
         filePath,
-        headSHA
+        fileRef
       );
       const buff = Buffer.from(content, "base64");
 
@@ -40029,7 +40281,7 @@ ${content}`;
         CI_COMMIT_SHA,
         "getFileContents"
       );
-      throw error;
+      return null;
     }
   }
 
