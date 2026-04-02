@@ -6,23 +6,27 @@ on:
       - staging
       - beta
 
+permissions:
+  contents: write
+
 jobs:
   package-action:
     name: Build Project
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
-          node-version: 16
+          node-version: 20
 
       - name: Package Action
         run: |
-          npm i 
+          npm i
           npm run build
           git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
           git add .
           git commit -m "chore: Update dist" || echo "No changes to commit"
           git push
