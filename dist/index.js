@@ -30463,7 +30463,7 @@ ${content}`;
 
           // Filtering classifications based on classificationNames
           let classificationsObj = classifications.filter(({ name }) =>
-            classificationNames.includes(name)
+            classificationNames?.includes(name) ?? false
           );
 
           // Modifying the readableTypeName
@@ -31532,7 +31532,7 @@ ${content}`;
 
           // Filtering classifications based on classificationNames
           let classificationsObj = classifications.filter(({ name }) =>
-            classificationNames.includes(name)
+            classificationNames?.includes(name) ?? false
           );
 
           // Modifying the readableTypeName
@@ -40140,7 +40140,7 @@ ${content}`;
 
           // Filtering classifications based on classificationNames
           let classificationsObj = classifications.filter(({ name }) =>
-            classificationNames.includes(name)
+            classificationNames?.includes(name) ?? false
           );
 
           // Modifying the readableTypeName
