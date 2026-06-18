@@ -1018,7 +1018,7 @@ ${content}`;
             ),
             attributes?.certificateStatus || "",
             truncate(
-              [...attributes?.ownerUsers, ...attributes?.ownerGroups] || []
+              [...(attributes?.ownerUsers || []), ...(attributes?.ownerGroups || [])]
             ),
             truncate(
               meanings.map(
