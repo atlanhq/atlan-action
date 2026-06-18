@@ -919,7 +919,7 @@ ${content}`;
           // Modifying the typeName and getting the readableTypeName
           let readableTypeName = typeName
             .toLowerCase()
-            .replace(attributes.connectorName, "")
+            .replace(attributes?.connectorName, "")
             .toUpperCase();
 
           // Filtering classifications based on classificationNames
@@ -935,20 +935,20 @@ ${content}`;
           return [
             guid,
             truncate(displayText),
-            truncate(attributes.connectorName),
+            truncate(attributes?.connectorName),
             truncate(readableTypeName),
             truncate(
               attributes?.userDescription || attributes?.description || ""
             ),
             attributes?.certificateStatus || "",
             truncate(
-              [...attributes?.ownerUsers, ...attributes?.ownerGroups] || []
+              [...(attributes?.ownerUsers || []), ...(attributes?.ownerGroups || [])]
             ),
             truncate(
-              meanings.map(
+              meanings?.map(
                 ({ displayText, termGuid }) =>
                   `[${displayText}](${ATLAN_INSTANCE_URL}/assets/${termGuid}/overview?utm_source=dbt_github_action)`
-              )
+              ) || []
             ),
             truncate(
               classificationsObj?.map(
