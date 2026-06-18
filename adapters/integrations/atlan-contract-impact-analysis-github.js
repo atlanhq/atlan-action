@@ -702,7 +702,7 @@ ${content}`;
           // Modifying the typeName and getting the readableTypeName
           let readableTypeName = typeName
             .toLowerCase()
-            .replace(attributes.connectorName, "")
+            .replace(attributes?.connectorName, "")
             .toUpperCase();
 
           // Filtering classifications based on classificationNames
@@ -718,7 +718,7 @@ ${content}`;
           return [
             guid,
             truncate(displayText),
-            truncate(attributes.connectorName),
+            truncate(attributes?.connectorName),
             truncate(readableTypeName),
             truncate(
               attributes?.userDescription || attributes?.description || ""
