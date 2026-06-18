@@ -1021,10 +1021,10 @@ ${content}`;
               [...(attributes?.ownerUsers || []), ...(attributes?.ownerGroups || [])]
             ),
             truncate(
-              meanings.map(
+              meanings?.map(
                 ({ displayText, termGuid }) =>
                   `[${displayText}](${ATLAN_INSTANCE_URL}/assets/${termGuid}/overview?utm_source=dbt_gitlab_action)`
-              )
+              ) || []
             ),
             truncate(
               classificationsObj?.map(

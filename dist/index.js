@@ -30484,10 +30484,10 @@ ${content}`;
               [...(attributes?.ownerUsers || []), ...(attributes?.ownerGroups || [])]
             ),
             truncate(
-              meanings.map(
+              meanings?.map(
                 ({ displayText, termGuid }) =>
                   `[${displayText}](${get_environment_variables_ATLAN_INSTANCE_URL}/assets/${termGuid}/overview?utm_source=dbt_github_action)`
-              )
+              ) || []
             ),
             truncate(
               classificationsObj?.map(
@@ -31553,10 +31553,10 @@ ${content}`;
               [...(attributes?.ownerUsers || []), ...(attributes?.ownerGroups || [])]
             ),
             truncate(
-              meanings.map(
+              meanings?.map(
                 ({ displayText, termGuid }) =>
                   `[${displayText}](${get_environment_variables_ATLAN_INSTANCE_URL}/assets/${termGuid}/overview?utm_source=dbt_github_action)`
-              )
+              ) || []
             ),
             truncate(
               classificationsObj?.map(
@@ -40161,10 +40161,10 @@ ${content}`;
               [...(attributes?.ownerUsers || []), ...(attributes?.ownerGroups || [])]
             ),
             truncate(
-              meanings.map(
+              meanings?.map(
                 ({ displayText, termGuid }) =>
                   `[${displayText}](${get_environment_variables_ATLAN_INSTANCE_URL}/assets/${termGuid}/overview?utm_source=dbt_gitlab_action)`
-              )
+              ) || []
             ),
             truncate(
               classificationsObj?.map(
