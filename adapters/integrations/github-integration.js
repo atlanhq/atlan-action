@@ -914,7 +914,7 @@ ${content}`;
           typeName,
           attributes,
           meanings,
-          classificationNames,
+          classificationNames = [],
         }) => {
           // Modifying the typeName and getting the readableTypeName
           let readableTypeName = typeName
