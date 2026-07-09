@@ -31,6 +31,16 @@ export function getNewModelAddedComment(fileName) {
   Its a new model and not present in Atlan yet, you'll see the downstream impact for it after its present in Atlan.`
 }
 
+export function getModelDeletedComment(fileName) {
+  return `### ${getConnectorImage("dbt")} <b>${fileName}</b> 🗑️
+  This model is being deleted. Below is the downstream impact analysis for this model.`
+}
+
+export function getModelRenamedComment(oldFileName, newFileName) {
+  return `### ${getConnectorImage("dbt")} <b>${oldFileName}</b> → <b>${newFileName}</b> ✏️
+  This model is being renamed. Below is the downstream impact analysis for this model.`
+}
+
 export function getBaseComment(totalChangedFiles, comments) {
   return `### ${getImageURL("atlan-logo", 15, 15)} Atlan impact analysis
   Here is your downstream impact analysis for **${totalChangedFiles} ${

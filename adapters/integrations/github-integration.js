@@ -28,7 +28,7 @@ import {
   getTableMD,
   getViewAssetButton,
 } from "../templates/github-integration.js";
-import { getBaseComment, getNewModelAddedComment } from "../templates/atlan.js";
+import { getBaseComment, getNewModelAddedComment, getModelDeletedComment, getModelRenamedComment } from "../templates/atlan.js";
 
 // githubIntegration.js
 import IntegrationInterface from "./contract/contract.js";
@@ -118,20 +118,74 @@ export default class GitHubIntegration extends IntegrationInterface {
       let comments = ``;
       let totalChangedFiles = 0;
 
-      for (const { fileName, filePath, status } of changedFiles) {
+      for (const { fileName, filePath, status, oldFileName, previousFilePath } of changedFiles) {
         logger.withInfo(
-          `Processing file: ${fileName}`,
+          `Processing file: ${fileName} (status: ${status})`,
           integrationName,
           headSHA,
           "printDownstreamAssets"
         );
-        const aliasName = await this.getAssetName({
-          octokit,
-          context,
-          fileName,
-          filePath,
-        });
-        const assetName = IGNORE_MODEL_ALIAS_MATCHING ? fileName : aliasName;
+
+        if (totalChangedFiles !== 0) comments += "\n\n---\n\n";
+
+        if (status === "added") {
+          logger.withInfo(
+            `New model added: ${fileName}`,
+            integrationName,
+            headSHA,
+            "printDownstreamAssets"
+          );
+          comments += getNewModelAddedComment(fileName);
+          totalChangedFiles++;
+          continue;
+        }
+
+        // Determine asset name based on file status
+        let assetName;
+        const baseSha = context.payload.pull_request.base.sha;
+
+        if (status === "removed") {
+          // Deleted file: read alias from base branch (file no longer exists at HEAD)
+          logger.withInfo(
+            `Model deleted: ${fileName}, fetching alias from base branch`,
+            integrationName,
+            headSHA,
+            "printDownstreamAssets"
+          );
+          const aliasName = await this.getAssetName({
+            octokit,
+            context,
+            fileName,
+            filePath,
+            ref: baseSha,
+          });
+          assetName = IGNORE_MODEL_ALIAS_MATCHING ? fileName : aliasName;
+        } else if (status === "renamed" && oldFileName) {
+          // Renamed file: use old filename to look up existing asset in Atlan
+          logger.withInfo(
+            `Model renamed: ${oldFileName} → ${fileName}, fetching alias from base branch`,
+            integrationName,
+            headSHA,
+            "printDownstreamAssets"
+          );
+          const aliasName = await this.getAssetName({
+            octokit,
+            context,
+            fileName: oldFileName,
+            filePath: previousFilePath,
+            ref: baseSha,
+          });
+          assetName = IGNORE_MODEL_ALIAS_MATCHING ? oldFileName : aliasName;
+        } else {
+          // Modified or other: existing behavior (read from HEAD)
+          const aliasName = await this.getAssetName({
+            octokit,
+            context,
+            fileName,
+            filePath,
+          });
+          assetName = IGNORE_MODEL_ALIAS_MATCHING ? fileName : aliasName;
+        }
 
         const environments = getEnvironments();
         let environment = null;
@@ -154,20 +208,6 @@ export default class GitHubIntegration extends IntegrationInterface {
           environment: environment,
           integration: "github",
         });
-
-        if (totalChangedFiles !== 0) comments += "\n\n---\n\n";
-
-        if (status === "added") {
-          logger.withInfo(
-            `New model added: ${fileName}`,
-            integrationName,
-            headSHA,
-            "printDownstreamAssets"
-          );
-          comments += getNewModelAddedComment(fileName);
-          totalChangedFiles++;
-          continue;
-        }
 
         if (asset.error) {
           logger.withError(
@@ -230,6 +270,13 @@ export default class GitHubIntegration extends IntegrationInterface {
           downstreamAssets,
           classifications,
         });
+
+        // Add preamble for deleted/renamed models
+        if (status === "removed") {
+          comments += getModelDeletedComment(fileName) + "\n\n";
+        } else if (status === "renamed" && oldFileName) {
+          comments += getModelRenamedComment(oldFileName, fileName) + "\n\n";
+        }
 
         comments += comment;
 
@@ -309,21 +356,48 @@ export default class GitHubIntegration extends IntegrationInterface {
         return totalChangedFiles;
       }
 
-      for (const { fileName, filePath } of changedFiles) {
+      for (const { fileName, filePath, status, oldFileName, previousFilePath } of changedFiles) {
+        // Skip deleted files — no point linking PR to a model being removed
+        if (status === "removed") {
+          logger.withInfo(
+            `Skipping removed file: ${fileName}`,
+            integrationName,
+            headSHA,
+            "setResourceOnAsset"
+          );
+          continue;
+        }
+
         logger.withInfo(
           `Processing file: ${fileName}`,
           integrationName,
           headSHA,
           "setResourceOnAsset"
         );
-        const aliasName = await this.getAssetName({
-          octokit,
-          context,
-          fileName,
-          filePath,
-        });
 
-        const assetName = IGNORE_MODEL_ALIAS_MATCHING ? fileName : aliasName;
+        // For renamed files, resolve asset name from old path using base ref
+        let aliasName;
+        let resolvedFileName = fileName;
+        if (status === "renamed" && oldFileName) {
+          resolvedFileName = oldFileName;
+          const baseSha = context.payload.pull_request.base.sha;
+          aliasName = await this.getAssetName({
+            octokit,
+            context,
+            fileName: oldFileName,
+            filePath: previousFilePath,
+            ref: baseSha,
+          });
+        } else {
+          aliasName = await this.getAssetName({
+            octokit,
+            context,
+            fileName,
+            filePath,
+          });
+        }
+
+        const assetName = IGNORE_MODEL_ALIAS_MATCHING ? resolvedFileName : aliasName;
 
         logger.withInfo(
           `Resolved asset name: ${assetName}`,
@@ -618,7 +692,7 @@ export default class GitHubIntegration extends IntegrationInterface {
       );
 
       var changedFiles = res.data
-        .map(({ filename, status }) => {
+        .map(({ filename, status, previous_filename }) => {
           try {
             const [modelName] = filename
               .match(/.*models\/(.*)\.sql/)[1]
@@ -627,13 +701,56 @@ export default class GitHubIntegration extends IntegrationInterface {
               .split(".");
 
             if (modelName) {
-              return {
+              const result = {
                 fileName: modelName,
                 filePath: filename,
                 status,
               };
+
+              // For renamed files, extract the old model name
+              if (status === "renamed" && previous_filename) {
+                try {
+                  const [oldModelName] = previous_filename
+                    .match(/.*models\/(.*)\.sql/)[1]
+                    .split("/")
+                    .reverse()[0]
+                    .split(".");
+                  result.oldFileName = oldModelName;
+                  result.previousFilePath = previous_filename;
+                } catch (e) {
+                  // Old file was not a model file, treat as new addition
+                  logger.withInfo(
+                    `Renamed file's old path does not match model pattern: ${previous_filename}`,
+                    integrationName,
+                    headSHA,
+                    "getChangedFiles"
+                  );
+                }
+              }
+
+              return result;
             }
           } catch (e) {
+            // If the new filename doesn't match models pattern, check old filename for renames
+            if (status === "renamed" && previous_filename) {
+              try {
+                const [oldModelName] = previous_filename
+                  .match(/.*models\/(.*)\.sql/)[1]
+                  .split("/")
+                  .reverse()[0]
+                  .split(".");
+                if (oldModelName) {
+                  // Model was renamed out of models/ dir — treat as removal
+                  return {
+                    fileName: oldModelName,
+                    filePath: previous_filename,
+                    status: "removed",
+                  };
+                }
+              } catch (e2) {
+                // Neither old nor new path matches model pattern
+              }
+            }
             logger.withError(
               `Error processing file: ${filename} - ${e.message}`,
               integrationName,
@@ -670,7 +787,7 @@ export default class GitHubIntegration extends IntegrationInterface {
     }
   }
 
-  async getAssetName({ octokit, context, fileName, filePath }) {
+  async getAssetName({ octokit, context, fileName, filePath, ref }) {
     try {
       logger.withInfo(
         "Getting asset name...",
@@ -685,6 +802,7 @@ export default class GitHubIntegration extends IntegrationInterface {
         octokit,
         context,
         filePath,
+        ref,
       });
 
       if (fileContents) {
@@ -717,7 +835,7 @@ export default class GitHubIntegration extends IntegrationInterface {
     }
   }
 
-  async getFileContents({ octokit, context, filePath }) {
+  async getFileContents({ octokit, context, filePath, ref }) {
     try {
       logger.withInfo(
         "Fetching file contents...",
@@ -728,12 +846,13 @@ export default class GitHubIntegration extends IntegrationInterface {
 
       const { repository, pull_request } = context.payload,
         owner = repository.owner.login,
-        repo = repository.name,
-        head_sha = pull_request.head.sha;
+        repo = repository.name;
+
+      const fileRef = ref || pull_request.head.sha;
 
       const res = await octokit
         .request(
-          `GET /repos/${owner}/${repo}/contents/${filePath}?ref=${head_sha}`,
+          `GET /repos/${owner}/${repo}/contents/${filePath}?ref=${fileRef}`,
           {
             owner,
             repo,
