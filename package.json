@@ -44,6 +44,6 @@
 
   },
   "devDependencies": {
-    "@types/json-stringify-safe": "^5.0.2"
+    "@types/json-stringify-safe": "^5.0.3"
   }
 }
