@@ -24,7 +24,7 @@ import getAssetClassifications from "../api/get-asset-classifications.js"
 import getContractAsset from "../api/get-contract-asset.js"
 import { getContractImpactAnalysisBaseComment } from "../templates/atlan.js";
 import getDownstreamLineageForAssets from "../api/get-downstream-assets.js"
-import github from "@actions/github";
+import * as github from "@actions/github";
 import logger from "../logger/logger.js";
 import {
   sendSegmentEvent,
