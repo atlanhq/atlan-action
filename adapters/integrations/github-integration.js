@@ -32,7 +32,7 @@ import { getBaseComment, getNewModelAddedComment } from "../templates/atlan.js";
 
 // githubIntegration.js
 import IntegrationInterface from "./contract/contract.js";
-import github from "@actions/github";
+import * as github from "@actions/github";
 import logger from "../logger/logger.js";
 import stringify from "json-stringify-safe";
 
