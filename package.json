@@ -19,7 +19,8 @@
   "scripts": {
     "build": "ncc build adapters/index.js -o dist",
     "start": "npm run build && act pull_request --container-architecture linux/amd64 --secret-file .env -e event.json --insecure-secrets",
-    "sync": "git pull && git push"
+    "sync": "git pull && git push",
+    "test": "node --test tests/unit/*.test.js"
   },
   "author": "Atlan (https://atlan.com/)",
   "license": "Apache-2.0",
